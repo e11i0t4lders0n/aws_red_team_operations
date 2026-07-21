@@ -67,7 +67,15 @@ footer{background:var(--dark);border-top:2px solid var(--border);padding:28px;te
 ::-webkit-scrollbar{width:6px;}
 ::-webkit-scrollbar-track{background:var(--darker);}
 ::-webkit-scrollbar-thumb{background:var(--red);border-radius:3px;}
-@media(max-width:900px){.layout{grid-template-columns:1fr;}.sidebar{display:none;}.content{padding:20px;}}
+@media(max-width:900px){
+  .layout{grid-template-columns:1fr;height:auto;}
+  .sidebar{display:none;}
+  .mobile-nav{display:flex;}
+  .content{padding:16px;max-height:none;overflow-y:visible;}
+  pre{font-size:.75em;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .ah{min-height:48px;}
+  body{overflow-y:auto;}
+}
 </style>
 </head>
 <body>
