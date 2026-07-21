@@ -84,6 +84,26 @@ footer{background:var(--dark);border-top:2px solid var(--border);padding:28px;te
   <div class="vc">&#x1F441; <span id="vc">0</span></div>
 </div>
 <div class="layout">
+<div class="mobile-nav">
+  <button onclick="nav('overview',this)" class="mp active">Overview</button>
+  <button onclick="nav('initial',this)" class="mp">Initial Access</button>
+  <button onclick="nav('execution',this)" class="mp">Execution</button>
+  <button onclick="nav('persistence',this)" class="mp">Persistence</button>
+  <button onclick="nav('cred',this)" class="mp">Credentials</button>
+  <button onclick="nav('discovery',this)" class="mp">Discovery</button>
+  <button onclick="nav('lateral',this)" class="mp">Lateral Movement</button>
+  <button onclick="nav('iam',this)" class="mp">IAM</button>
+  <button onclick="nav('vpc',this)" class="mp">VPC</button>
+  <button onclick="nav('ec2',this)" class="mp">EC2</button>
+  <button onclick="nav('lambda',this)" class="mp">Lambda</button>
+  <button onclick="nav('containers',this)" class="mp">Containers</button>
+  <button onclick="nav('s3',this)" class="mp">S3</button>
+  <button onclick="nav('rds',this)" class="mp">RDS</button>
+  <button onclick="nav('ebs',this)" class="mp">EBS</button>
+  <button onclick="nav('secrets',this)" class="mp">Secrets</button>
+  <button onclick="nav('sso',this)" class="mp">SSO</button>
+  <button onclick="nav('security',this)" class="mp">Security Svc</button>
+</div>
 <aside class="sidebar">
   <div class="sb-head">&#x1F3AF; Attack Framework</div>
   <div class="sb-item active" onclick="nav('overview',this)">&#x1F4CA; Overview</div>
