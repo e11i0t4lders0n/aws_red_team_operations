@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>AWS Cloud Red Team Operations</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -12,7 +12,7 @@
   --text:#ECF0F1;--muted:#8fa3b1;--border:#2e4057;
   --yellow:#F39C12;--green:#27AE60;--blue:#3498DB;--purple:#9B59B6;
 }
-body{background:var(--darker);color:var(--text);font-family:"Segoe UI",monospace;line-height:1.6;overflow-x:hidden;}
+body{background:var(--darker);color:var(--text);font-family:"Segoe UI",monospace;line-height:1.6;overflow-x:hidden;font-size:15px;}
 .header{background:linear-gradient(135deg,var(--red),var(--red-dark));padding:14px 20px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:1000;box-shadow:0 3px 20px rgba(0,0,0,.5);}
 .header h1{color:#fff;font-size:1.4em;font-weight:900;letter-spacing:1px;}
 .vc{background:rgba(255,255,255,.15);padding:6px 14px;border-radius:6px;color:#fff;font-weight:700;font-size:.9em;white-space:nowrap;}
@@ -91,48 +91,119 @@ footer{background:var(--dark);border-top:2px solid var(--border);padding:26px;te
 
 /* ===== MOBILE ===== */
 @media(max-width:900px){
-  .header h1{font-size:1.1em;}
+  /* Header */
+  .header{padding:10px 14px;flex-wrap:nowrap;gap:8px;}
+  .header h1{font-size:.95em;letter-spacing:0;}
+  .vc{font-size:.82em;padding:5px 10px;white-space:nowrap;}
+
+  /* Kill desktop layout */
   .layout{display:block;height:auto;}
   .sidebar{display:none;}
-  .content{padding:14px 14px 50px;overflow-y:visible;max-height:none;}
+  .content{
+    padding:12px 12px 60px;
+    overflow-y:visible;
+    max-height:none;
+  }
 
-  /* Mobile sticky pill nav below header */
+  /* Mobile pill nav */
   .mobile-nav{
     display:flex;
     overflow-x:auto;
-    gap:7px;
+    gap:8px;
     padding:10px 12px;
     background:var(--dark);
     border-bottom:2px solid var(--border);
     position:sticky;
-    top:50px;
+    top:48px;
     z-index:999;
     -webkit-overflow-scrolling:touch;
     scrollbar-width:none;
+    min-height:52px;
+    align-items:center;
   }
   .mobile-nav::-webkit-scrollbar{display:none;}
   .mp{
     flex-shrink:0;
-    padding:7px 13px;
+    padding:9px 16px;
     background:rgba(231,76,60,.12);
-    border:1px solid var(--red);
-    border-radius:20px;
+    border:1.5px solid var(--red);
+    border-radius:22px;
     color:var(--red);
-    font-size:.78em;
+    font-size:.85em;
     font-weight:700;
     cursor:pointer;
     white-space:nowrap;
+    min-height:38px;
+    display:flex;
+    align-items:center;
     transition:all .2s;
+    -webkit-tap-highlight-color:transparent;
   }
-  .mp.active{background:var(--red);color:#fff;}
+  .mp.active{background:var(--red);color:#fff;border-color:var(--red);}
 
-  /* Card & content tweaks */
-  .pt{font-size:1.5em;}
-  .card{padding:14px;}
-  .g2{grid-template-columns:1fr;}
-  pre{font-size:.76em;}
-  table{font-size:.78em;display:block;overflow-x:auto;}
-  .ah{min-height:50px;padding:13px 12px;font-size:.85em;}
+  /* Typography */
+  .pt{font-size:1.5em;margin-bottom:4px;}
+  .ps{font-size:.88em;margin-bottom:18px;}
+
+  /* Cards */
+  .card{padding:14px;margin-bottom:14px;}
+  .ct{font-size:1.05em;}
+  .cd{font-size:.88em;padding:9px 11px;}
+
+  /* FORCE single column grid */
+  .g2{
+    display:flex !important;
+    flex-direction:column !important;
+    gap:10px;
+  }
+  .ib{width:100% !important;}
+
+  /* Accordions - bigger tap targets */
+  .acc{margin:7px 0;}
+  .ah{
+    min-height:52px;
+    padding:14px 13px;
+    font-size:.88em;
+    line-height:1.3;
+  }
+  .ab{padding:0;}
+  .acc.open .ab{padding:12px;}
+
+  /* Code blocks */
+  pre{
+    font-size:.74em;
+    padding:11px;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    word-break:normal;
+    white-space:pre;
+  }
+  code{word-break:normal;white-space:pre;}
+
+  /* Tables */
+  table{
+    display:block;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    font-size:.8em;
+    white-space:nowrap;
+  }
+  th,td{padding:8px 10px;}
+
+  /* Badges */
+  .badge{font-size:.68em;padding:3px 8px;}
+
+  /* Lists */
+  ul,ol{margin-left:14px;}
+  li{font-size:.88em;margin-bottom:3px;}
+
+  /* Footer */
+  footer{padding:20px 14px;}
+  .sl{gap:10px;}
+  .sl a{padding:7px 14px;font-size:.88em;}
+
+  /* Disable hover transform on touch */
+  .card:hover{transform:none;}
 }
 </style>
 </head>
